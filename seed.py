@@ -1,0 +1,44 @@
+"""
+Responsável pela criação das tabelas e a inserção do usuário inicial
+Basicamente temos 2 metodos importantes:
+- get_connection inicia a conexão com o banco de dados, retornando o objeto 'conn'
+- cursor é um objeto derivado de conn (conn.cursor), que é o responsavel por executar 
+comandos SQL (como consultas e alterações) no servidor, percorrer os resultados 
+obtidos e gerenciar transações. """
+
+from database import get_connection
+
+conn = get_connection() #abre o banco de dados
+
+cursor = conn.cursor() # Cuida das consultas SQL.
+
+cursor.execute("""
+
+CREATE TABLE IF NOT EXISTS usuarios (
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    usuario TEXT NOT NULL UNIQUE,
+
+    senha TEXT NOT NULL
+
+)
+
+""")
+# Executa um comando SQL que cria a tabela "usuarios" caso ela ainda não exista.
+# A tabela possui um ID gerado automaticamente, um nome de usuário único e uma senha.
+
+cursor.execute("""
+
+INSERT OR IGNORE INTO usuarios(usuario, senha)
+
+VALUES (?, ?)
+
+""", ("admin", "123456"))
+# Insere um usuário no banco de dados; se ele já existir, a operação é ignorada.
+
+conn.commit() # Salva as alterações realizadas no banco de dados.
+
+conn.close() # Encerra a conexão com o banco de dados.
+
+print("Banco criado com sucesso.")
