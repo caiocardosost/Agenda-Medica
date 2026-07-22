@@ -12,6 +12,11 @@ conn = get_connection() #abre o banco de dados
 
 cursor = conn.cursor() # Cuida das consultas SQL.
 
+#Criando tabela de usuários
+""" 
+Executa um comando SQL que cria a tabela "usuarios" caso ela ainda não exista.
+A tabela possui um ID gerado automaticamente, um nome de usuário único e uma senha.
+"""
 cursor.execute("""
 
 CREATE TABLE IF NOT EXISTS usuarios (
@@ -25,8 +30,40 @@ CREATE TABLE IF NOT EXISTS usuarios (
 )
 
 """)
-# Executa um comando SQL que cria a tabela "usuarios" caso ela ainda não exista.
-# A tabela possui um ID gerado automaticamente, um nome de usuário único e uma senha.
+
+
+#Criando a tabela de agendamento
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS agendamentos(
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    paciente TEXT NOT NULL,
+
+    cpf TEXT NOT NULL,
+
+    medico TEXT NOT NULL,
+
+    especialidade TEXT NOT NULL,
+
+    data TEXT NOT NULL,
+
+    horario TEXT NOT NULL,
+
+    convenio TEXT NOT NULL,
+
+    status TEXT NOT NULL
+
+)
+""")
+
+# Registrando o primeiro usuário
+
+"""
+Insere um usuário no banco de dados; se ele já existir, a operação é ignorada.
+
+"""
 
 cursor.execute("""
 
@@ -35,7 +72,6 @@ INSERT OR IGNORE INTO usuarios(usuario, senha)
 VALUES (?, ?)
 
 """, ("admin", "123456"))
-# Insere um usuário no banco de dados; se ele já existir, a operação é ignorada.
 
 conn.commit() # Salva as alterações realizadas no banco de dados.
 
