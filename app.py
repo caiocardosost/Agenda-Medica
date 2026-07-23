@@ -7,7 +7,7 @@ Biblioteca Flask - modulos:
 Database - script criado que criar/conecta com a base de dados
  """
 from flask import Flask, render_template, request, redirect 
-from database import get_connection
+from database import (buscar_usuario, salvar_agendamentos, buscar_agendamentos)
 import requests
 import os
 
@@ -27,13 +27,13 @@ Em geral, o fluxo é o seguinte:
 
 - Quando a página é acessada por GET, a aplicação retorna o template login.html, 
 exibindo o formulário de login ao usuário.
-- Quando o formulário, construido no html é preenchi, ele é enviado como requisição POST, com isso
+- Quando o formulário, construido no html é preenchida, ele é enviado como requisição POST, com isso
 obtém-se o usuário e a senha informados. A pagina é recarregada como requisão POST.
-- Em seguida, conecta ao banco de dados e verifica se existe um registro
+- Em seguida, consulta o banco de dados para verificar se existe um registro
   com as credenciais fornecidas.
 - Caso não encontre o usuário, recarrega a página de login exibindo uma mensagem de erro.
-- Caso encontre, realiza uma requisição HTTP através da biblioteca request
-com a rota da API (/agendamentos), que por sua vez retorna um json contendo a lista de agendamentos.
+- Caso encontre, redireciona o usuário para a rota "/agenda", responsável por
+  obter os agendamentos da API e exibi-los ao usuário.
 """
 
 @app.route("/", methods=["GET", "POST"]) #especificando que a rota aceita get e post
@@ -45,40 +45,24 @@ def login(): # se for acessado por get, mostra a tela de login; se post, realiza
 
         senha = request.form["senha"]
 
-        # Implementando o tratamento de exceções para a conexão com o banco de dados.
-        try:
+        #realiza a busca do usuário no banco de dados, retornando o resultado e um possível erro (tupla)
 
-            conn = get_connection()
+        resultado, erro = buscar_usuario(usuario, senha)
 
-            cursor = conn.cursor()
-
-        except Exception:
+        #se retornou erro
+        if erro:
 
             return render_template(
                 "login.html",
                 erro="Não foi possível conectar ao banco de dados."
             )
 
-        
-        cursor.execute("""
-
-        SELECT *
-
-        FROM usuarios
-
-        WHERE usuario = ?
-
-        AND senha = ?
-
-        """, (usuario, senha)) #Busca as credenciais no banco de dados
-
-        resultado = cursor.fetchone() #recupera a próxima linha do resultado de uma consulta SQL (None, se não houver)
-
-        conn.close() #encerra a conexão com o banco de dados
-
+        #se encontrou o usuário, redireciona para a rota /agenda
         if resultado:
-            return redirect("/agenda") # Se o usuario for validado, redireciona para a rota 'agenda'
 
+            return redirect("/agenda")
+
+        #se não encontrou o usuário, recarrega a página de login exibindo uma mensagem de erro
         else:
 
             return render_template(
@@ -91,15 +75,16 @@ def login(): # se for acessado por get, mostra a tela de login; se post, realiza
 
 # Rota agenda:
 """
-Após um login bem-sucedido, esta rota é acessada para carregar
-a agenda médica. Inicialmente a busca não existe, logo seu parametro é vazio "". Com isso, api, quando
-consultada com parametro vazio (""), retorna toda a tabela de agendamedo. Com ela então renderiza
-a pagina html "agenda".
-Quando o formulario disponivel para busca no html é preenchido, então uma nova requisição get é realizada
-em /agenda com o parametro informado, (ex.: /agenda?busca=joao). Esse parâmetro da busca é então enviado para a API de
-agendamentos, que retorna apenas os registros correspondentes.
-Os dados recebidos em formato JSON são convertidos para objetos Python e enviados ao 
-template "agenda.html", responsável por exibir a tabela ao usuário"""
+Após um login bem-sucedido, esta rota é acessada para carregar a agenda médica.
+Inicialmente é realizada uma requisição HTTP para a API de agendamentos, que retorna
+os registros em formato JSON. Esses dados são validados e armazenados no banco de
+dados SQLite da aplicação.
+Em seguida, a consulta é realizada sobre os dados armazenados localmente,
+permitindo aplicar filtros por paciente, CPF ou médico através do parâmetro
+'busca' recebido na URL (ex.: /agenda?busca=joao).
+Por fim, os registros encontrados são enviados ao template "agenda.html",
+responsável por exibir a tabela utilizando a biblioteca Tabulator.
+"""
 
 @app.route("/agenda")
 def agenda():
@@ -112,13 +97,13 @@ def agenda():
     # API_URL é a variável de ambiente definida no docker-compose.yml, que aponta para o serviço da API.
     api_url = os.getenv("API_URL", "http://localhost:5001/agendamentos")
 
-    #requisição GET para a API de agendamentos, passando o parâmetro de busca. (trata excessões de conexão e resposta inválida)
+    # Realiza uma requisição HTTP para obter todos os agendamentos disponíveis na API.
+    # Os dados recebidos serão posteriormente armazenados no banco de dados local
     try:
         resposta = requests.get(
             api_url,
-            params={"busca":busca},
             timeout=5
-        ) # aqui o request monta algo como /agendamentos?busca={valor da variavel busca} - Api então interpreta esse valor
+        ) 
 
         
     except requests.exceptions.ConnectionError:
@@ -170,6 +155,32 @@ def agenda():
             if campo not in registro:
 
                 registro[campo] = "Não informado"
+
+    # Atualiza a base de dados local com os agendamentos recebidos da API.
+    # Os registros antigos são removidos e substituídos pelos novos. 
+
+    sucesso = salvar_agendamentos(agendamentos)
+
+    if not sucesso:
+
+        return render_template(
+            "agenda.html",
+            erro="Não foi possível salvar os agendamentos.",
+            agendamentos=[],
+            busca=busca
+        )
+
+    # Consulta os agendamentos armazenados no banco de dados local, aplicando o filtro informado pelo usuário, quando existir.
+    agendamentos, erro = buscar_agendamentos(busca)
+
+    if erro:
+
+        return render_template(
+            "agenda.html",
+            erro="Não foi possível consultar os agendamentos.",
+            agendamentos=[],
+            busca=busca
+        )
 
     return render_template(
 

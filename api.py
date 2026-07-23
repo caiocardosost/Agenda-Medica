@@ -37,32 +37,7 @@ def agendamentos():
     ]
 
     """"""
-    busca = request.args.get("busca","").lower()
-
-    if busca == "":
-        return jsonify(dados)
-
-    resultado = []
-
-    for registro in dados:
-
-        if (
-
-            busca in registro["paciente"].lower()
-
-            or
-
-            busca in registro["cpf"]
-
-            or
-
-            busca in registro["medico"].lower()
-
-        ):
-
-            resultado.append(registro)
-
-    return jsonify(resultado)
+    return jsonify(dados) # Retorna os dados em formato JSON.
 
 
 if __name__ == "__main__":
