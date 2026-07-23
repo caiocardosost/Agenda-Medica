@@ -65,7 +65,7 @@ def login(): # se for acessado por get, mostra a tela de login; se post, realiza
         conn.close() #encerra a conexão com o banco de dados
 
         if resultado:
-            redirect("/agenda") # Se o usuario for validado, redireciona para a rota 'agenda'
+            return redirect("/agenda") # Se o usuario for validado, redireciona para a rota 'agenda'
 
         else:
 
