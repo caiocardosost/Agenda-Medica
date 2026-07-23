@@ -9,6 +9,7 @@ Database - script criado que criar/conecta com a base de dados
 from flask import Flask, render_template, request, redirect 
 from database import get_connection
 import requests
+import os
 
 # Cria a aplicação Flask
 app = Flask(__name__) #instancia objeto flask (__name__) será substituido pelo nome do arquivo (app)
@@ -93,9 +94,13 @@ template "agenda.html", responsável por exibir a tabela ao usuário"""
 def agenda():
 
     busca = request.args.get("busca","") # 'args' recupera informação da URL - Geralmente em buscas 'GET'
-
+    # --ALTERAçÃO PARA PÓS IMPLEMENTAÇÃO DO DOCKER - 
+    # api_url Recupera a variável de ambiente definida no docker-compose ou usa localhost, caso não
+    # esteja rodando em container.
+    # API_URL é a variável de ambiente definida no docker-compose.yml, que aponta para o serviço da API.
+    api_url = os.getenv("API_URL", "http://localhost:5001/agendamentos")
     resposta = requests.get(
-        "http://localhost:5001/agendamentos",
+        api_url,
         params={"busca":busca}
     ) # aqui o request monta algo como /agendamentos?busca={valor da variavel busca} - Api então interpreta esse valor
 
@@ -113,4 +118,10 @@ def agenda():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0",
+        port=5000,
+        debug=True)
+    # app.run serve para iniciar o servidor Flask.
+    # parametro Host 0.0.0.0 permite escutar em todas as interfaces de rede.
+    # Desta forma, permite que a aplicação Flask seja acessível de fora do contêiner Docker, 
+    # permitindo que outros dispositivos na rede acessem a aplicação.
