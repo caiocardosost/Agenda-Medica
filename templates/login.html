@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Agenda Médica</title>
+    <title>Agenda Médica - Login</title>
 </head>
 
 <body>
@@ -12,29 +12,29 @@
 
     <h2>Login</h2>
 
-    <!-- A MENSAGEM DE ERRO FICA AQUI -->
     {% if erro %}
-        <p style="color:red">
+        <p style="color:red;">
             {{ erro }}
         </p>
     {% endif %}
 
-    <!-- O FORMULÁRIO COMEÇA AQUI -->
     <form method="POST">
 
-        <label>Usuário</label><br>
+        <label for="usuario">Usuário</label><br>
 
         <input
             type="text"
+            id="usuario"
             name="usuario"
             required>
 
         <br><br>
 
-        <label>Senha</label><br>
+        <label for="senha">Senha</label><br>
 
         <input
             type="password"
+            id="senha"
             name="senha"
             required>
 
@@ -47,4 +47,5 @@
     </form>
 
 </body>
+
 </html>

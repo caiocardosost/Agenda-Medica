@@ -69,7 +69,10 @@ def login(): # se for acessado por get, mostra a tela de login; se post, realiza
 
             agendamentos = resposta.json()
 
-            return str(agendamentos)
+            return render_template(
+                "agenda.html",
+                agendamentos=agendamentos
+            )
 
         else:
 
