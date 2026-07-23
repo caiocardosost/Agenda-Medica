@@ -4,7 +4,6 @@
 <head>
 
     <meta charset="UTF-8">
-
     <title>Agenda Médica</title>
 
     <!-- CSS do Tabulator -->
@@ -22,7 +21,13 @@
         input{
             width:350px;
             padding:8px;
-            margin-top:10px;
+        }
+
+        button{
+            padding:8px 12px;
+        }
+
+        form{
             margin-bottom:20px;
         }
 
@@ -34,38 +39,58 @@
 
     <h1>Agenda Médica</h1>
 
-    <h3>Agendamentos</h3>
+    <!--
+        O formulário utiliza GET.
+        Quando o usuário clicar em "Buscar", o navegador fará uma
+        requisição para:
 
-    <input
-        type="text"
-        id="busca"
-        placeholder="Buscar por paciente, CPF ou médico">
+        /agenda?busca=valor_digitado
+
+        O Flask receberá esse parâmetro através de
+        request.args.get("busca")
+    -->
+
+    <form method="GET" action="/agenda">
+
+        <input
+            type="text"
+            name="busca"
+            placeholder="Pesquisar por paciente, CPF ou médico"
+            value="{{ busca }}">
+
+        <button type="submit">
+            Buscar
+        </button>
+
+    </form>
 
     <div id="agenda"></div>
 
-
-    <!-- Biblioteca Tabulator -->
+    <!-- JavaScript do Tabulator -->
     <script src="https://unpkg.com/tabulator-tables@6.3.0/dist/js/tabulator.min.js"></script>
 
     <script>
 
-        //----------------------------------------------------
-        // Dados enviados pelo Flask
-        //----------------------------------------------------
+        /*
+            O Flask envia a lista "agendamentos" para o template.
+
+            O filtro "tojson" converte a lista Python em um objeto
+            JavaScript.
+        */
 
         const dados = {{ agendamentos | tojson }};
 
-        //----------------------------------------------------
-        // Criação da tabela
-        //----------------------------------------------------
+        /*
+            Cria a tabela.
+        */
 
-        const tabela = new Tabulator("#agenda", {
+        new Tabulator("#agenda", {
 
             data: dados,
 
             layout: "fitColumns",
 
-            placeholder: "Nenhum agendamento disponível.",
+            placeholder: "Nenhum agendamento encontrado.",
 
             columns: [
 
@@ -112,46 +137,6 @@
             ]
 
         });
-
-        //----------------------------------------------------
-        // Campo de busca
-        //----------------------------------------------------
-
-        document
-            .getElementById("busca")
-            .addEventListener("keyup", function(){
-
-                const texto = this.value
-                    .trim()
-                    .toLowerCase();
-
-                if(texto === ""){
-
-                    tabela.clearFilter();
-
-                    return;
-
-                }
-
-                tabela.setFilter(function(data){
-
-                    return (
-
-                        data.paciente.toLowerCase().includes(texto)
-
-                        ||
-
-                        data.cpf.includes(texto)
-
-                        ||
-
-                        data.medico.toLowerCase().includes(texto)
-
-                    );
-
-                });
-
-            });
 
     </script>
 
