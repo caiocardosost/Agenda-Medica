@@ -38,6 +38,13 @@
 <body>
 
     <h1>Agenda Médica</h1>
+    {% if erro %}
+
+    <p style="color:red;">
+    {{ erro }}
+    </p>
+    
+    {% endif %}
 
     <!--
         O formulário utiliza GET.

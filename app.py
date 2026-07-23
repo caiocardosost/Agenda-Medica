@@ -45,10 +45,21 @@ def login(): # se for acessado por get, mostra a tela de login; se post, realiza
 
         senha = request.form["senha"]
 
-        conn = get_connection()
+        # Implementando o tratamento de exceções para a conexão com o banco de dados.
+        try:
 
-        cursor = conn.cursor()
+            conn = get_connection()
 
+            cursor = conn.cursor()
+
+        except Exception:
+
+            return render_template(
+                "login.html",
+                erro="Não foi possível conectar ao banco de dados."
+            )
+
+        
         cursor.execute("""
 
         SELECT *
@@ -94,17 +105,71 @@ template "agenda.html", responsável por exibir a tabela ao usuário"""
 def agenda():
 
     busca = request.args.get("busca","") # 'args' recupera informação da URL - Geralmente em buscas 'GET'
+
     # --ALTERAçÃO PARA PÓS IMPLEMENTAÇÃO DO DOCKER - 
     # api_url Recupera a variável de ambiente definida no docker-compose ou usa localhost, caso não
     # esteja rodando em container.
     # API_URL é a variável de ambiente definida no docker-compose.yml, que aponta para o serviço da API.
     api_url = os.getenv("API_URL", "http://localhost:5001/agendamentos")
-    resposta = requests.get(
-        api_url,
-        params={"busca":busca}
-    ) # aqui o request monta algo como /agendamentos?busca={valor da variavel busca} - Api então interpreta esse valor
 
-    agendamentos = resposta.json()
+    #requisição GET para a API de agendamentos, passando o parâmetro de busca. (trata excessões de conexão e resposta inválida)
+    try:
+        resposta = requests.get(
+            api_url,
+            params={"busca":busca},
+            timeout=5
+        ) # aqui o request monta algo como /agendamentos?busca={valor da variavel busca} - Api então interpreta esse valor
+
+        
+    except requests.exceptions.ConnectionError:
+
+        return render_template(
+            "agenda.html",
+            erro="Não foi possível conectar ao servidor de agendamentos.",
+            agendamentos=[],
+            busca=busca
+        )
+
+    #verifica se a resposta da API foi bem-sucedida (código de status 200)
+    if resposta.status_code != 200:
+        return render_template(
+            "agenda.html",
+            erro="Erro ao consultar a API.",
+            agendamentos=[],
+            busca=busca
+
+        )
+    # verifica a validade da resposta da API.
+    try:
+        agendamentos = resposta.json()
+    except ValueError:
+        return render_template(
+        "agenda.html",
+        erro="Resposta inválida recebida da API.",
+        agendamentos=[],
+        busca=busca
+    )
+
+    #trata falta de dados na resposta da API:
+    
+    campos = [
+    "paciente",
+    "cpf",
+    "medico",
+    "especialidade",
+    "data",
+    "horario",
+    "convenio",
+    "status"
+    ]
+
+    for registro in agendamentos:
+
+        for campo in campos:
+
+            if campo not in registro:
+
+                registro[campo] = "Não informado"
 
     return render_template(
 
